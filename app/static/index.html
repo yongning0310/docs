@@ -1,0 +1,1961 @@
+<!-- This file is vibe coded. SHould use proper frontend frameworks for production -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --sidebar-bg: #0F172A;
+  --sidebar-text: #94A3B8;
+  --sidebar-active: #FFFFFF;
+  --sidebar-active-bg: #1E293B;
+  --primary: #1E40AF;
+  --primary-hover: #1D4ED8;
+  --text: #0F172A;
+  --text-secondary: #64748B;
+  --border: #E2E8F0;
+  --green: #16A34A;
+  --green-bg: #D1FAE5;
+  --red: #DC2626;
+  --red-bg: #FEE2E2;
+  --pending-bg: #FEF9C3;
+  --pending-border: #CA8A04;
+  --warning: #F59E0B;
+  --draft-color: #3B82F6;
+  --frozen-color: #7C3AED;
+  --radius: 8px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-doc: Georgia, 'Times New Roman', Times, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========== Layout ========== */
+.app-layout { display: flex; flex-direction: column; height: 100vh; }
+
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 52px; background: var(--surface);
+  border-bottom: 1px solid var(--border); flex-shrink: 0; z-index: 20;
+}
+.app-header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+
+.header-center { display: flex; align-items: center; gap: 12px; }
+
+.header-right { display: flex; align-items: center; gap: 16px; }
+
+.save-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.save-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.save-dot.saved { background: var(--green); }
+.save-dot.saving, .save-dot.unsaved { background: var(--warning); }
+.save-dot.error { background: var(--red); }
+
+.phase-status { font-size: 12px; font-weight: 600; color: var(--frozen-color); display: flex; align-items: center; gap: 6px; }
+
+.user-identity { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+
+.health-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+.health-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.health-dot.unhealthy { background: var(--red); }
+
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+/* ========== Sidebar ========== */
+.sidebar {
+  width: 240px; background: var(--sidebar-bg); display: flex; flex-direction: column;
+  flex-shrink: 0; overflow: hidden;
+}
+
+.sidebar-search { padding: 16px 12px 8px; position: relative; }
+.sidebar-search svg {
+  position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--sidebar-text); pointer-events: none; margin-top: 4px;
+}
+.sidebar-search input {
+  width: 100%; padding: 8px 12px 8px 32px; border-radius: 6px;
+  border: 1px solid rgba(148,163,184,0.2); background: rgba(255,255,255,0.06);
+  color: var(--sidebar-active); font-size: 13px; font-family: var(--font-ui);
+  outline: none; transition: border-color 0.15s;
+}
+.sidebar-search input::placeholder { color: var(--sidebar-text); }
+.sidebar-search input:focus { border-color: rgba(148,163,184,0.4); }
+
+.doc-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.doc-list::-webkit-scrollbar { width: 4px; }
+.doc-list::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 2px; }
+
+.doc-item {
+  padding: 10px 16px; cursor: pointer; border-left: 3px solid transparent;
+  transition: all 0.15s; display: flex; flex-direction: column; gap: 4px;
+}
+.doc-item:hover { background: rgba(255,255,255,0.04); }
+.doc-item.active { border-left-color: var(--draft-color); background: var(--sidebar-active-bg); }
+
+.doc-item-title {
+  font-size: 13px; font-weight: 500; color: var(--sidebar-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.doc-item.active .doc-item-title { color: var(--sidebar-active); }
+
+.doc-item-meta { display: flex; align-items: center; gap: 6px; }
+
+.phase-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px; padding: 1px 5px;
+  border-radius: 3px; text-transform: uppercase; flex-shrink: 0;
+}
+.phase-badge.draft { background: var(--draft-color); color: #fff; }
+.phase-badge.frozen { background: var(--frozen-color); color: #fff; }
+
+.doc-item-version { font-size: 11px; color: var(--sidebar-text); opacity: 0.7; }
+
+.sidebar-new {
+  padding: 12px; border-top: 1px solid rgba(148,163,184,0.15);
+}
+.sidebar-new button {
+  width: 100%; padding: 8px; border-radius: 6px; border: 1px dashed rgba(148,163,184,0.3);
+  background: transparent; color: var(--sidebar-text); font-size: 13px; font-family: var(--font-ui);
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.sidebar-new button:hover { border-color: var(--sidebar-active); color: var(--sidebar-active); background: rgba(255,255,255,0.04); }
+
+/* ========== Main Content ========== */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.doc-topbar {
+  padding: 16px 32px; border-bottom: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.doc-topbar-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+
+.doc-title-input {
+  font-size: 20px; font-weight: 700; border: none; background: transparent; color: var(--text);
+  font-family: var(--font-ui); outline: none; flex: 1; min-width: 0;
+  padding: 4px 8px; border-radius: 4px; transition: background 0.15s;
+}
+.doc-title-input:hover:not(:read-only) { background: var(--bg); }
+.doc-title-input:focus:not(:read-only) { background: var(--bg); }
+.doc-title-input:read-only { cursor: default; }
+
+.phase-badge-lg {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px; padding: 3px 10px;
+  border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
+}
+.phase-badge-lg.draft { background: var(--draft-color); color: #fff; }
+.phase-badge-lg.frozen { background: var(--frozen-color); color: #fff; }
+
+.frozen-date { font-size: 12px; color: var(--text-secondary); flex-shrink: 0; }
+
+.doc-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.btn {
+  padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  font-family: var(--font-ui); cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--bg); }
+
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+.btn-freeze { background: var(--frozen-color); color: #fff; border-color: var(--frozen-color); }
+.btn-freeze:hover { background: #6D28D9; border-color: #6D28D9; }
+
+.btn-danger { color: var(--red); }
+.btn-danger:hover { background: var(--red-bg); border-color: var(--red); }
+
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+.doc-scroll { flex: 1; overflow-y: auto; padding: 32px; display: flex; justify-content: center; }
+
+.doc-paper {
+  width: 100%; max-width: 780px; min-height: 600px; height: auto; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 48px; font-family: var(--font-doc);
+  font-size: 16px; line-height: 1.8; color: var(--text); white-space: pre-wrap;
+  outline: none; position: relative; overflow: visible;
+  margin-bottom: 32px;
+}
+.doc-paper.frozen-paper { border-top: 3px solid var(--frozen-color); }
+.doc-paper:focus { box-shadow: var(--shadow-md); }
+.doc-paper:empty::before {
+  content: 'Start writing...'; color: var(--text-secondary); pointer-events: none;
+}
+
+/* Suggestion highlights inline */
+.suggestion-highlight {
+  background: var(--pending-bg); border-bottom: 2px solid var(--pending-border);
+  cursor: pointer; position: relative; border-radius: 2px; padding: 0 1px;
+}
+.suggestion-highlight:hover { background: #FEF08A; }
+.suggestion-highlight.accepted { background: var(--green-bg); border-bottom-color: var(--green); }
+.suggestion-highlight.rejected { background: var(--red-bg); border-bottom-color: var(--red); text-decoration: line-through; }
+
+/* ========== Right Panel ========== */
+.right-panel {
+  width: 320px; background: var(--surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+}
+
+.panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1; padding: 12px 16px; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none;
+  font-family: var(--font-ui);
+}
+.panel-tab:hover { color: var(--text); }
+.panel-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.panel-content { flex: 1; overflow-y: auto; }
+.panel-content::-webkit-scrollbar { width: 4px; }
+.panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Suggestions Panel */
+.suggestions-header { padding: 16px; border-bottom: 1px solid var(--border); }
+.suggestions-header h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.filter-pills { display: flex; gap: 4px; }
+.filter-pill {
+  padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  cursor: pointer; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-secondary); transition: all 0.15s; font-family: var(--font-ui);
+}
+.filter-pill:hover { border-color: var(--primary); color: var(--primary); }
+.filter-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.suggestion-list { padding: 8px; }
+
+.suggestion-card {
+  border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px;
+  overflow: hidden; cursor: pointer; transition: all 0.15s;
+}
+.suggestion-card:hover { box-shadow: var(--shadow); }
+.suggestion-card.active-card { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+
+.suggestion-card-inner { display: flex; }
+.suggestion-bar { width: 4px; flex-shrink: 0; }
+.suggestion-bar.pending { background: var(--pending-border); }
+.suggestion-bar.accepted { background: var(--green); }
+.suggestion-bar.rejected { background: var(--red); }
+
+.suggestion-body { padding: 12px; flex: 1; min-width: 0; }
+
+.suggestion-author { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.suggestion-author .user-avatar { width: 20px; height: 20px; font-size: 9px; }
+.suggestion-author-name { font-size: 12px; font-weight: 600; }
+.suggestion-time { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
+
+.suggestion-diff { font-size: 13px; margin-bottom: 8px; line-height: 1.6; }
+.diff-del { color: var(--red); text-decoration: line-through; background: var(--red-bg); padding: 1px 3px; border-radius: 2px; }
+.diff-ins { color: var(--green); background: var(--green-bg); padding: 1px 3px; border-radius: 2px; }
+.diff-arrow { color: var(--text-secondary); margin: 0 4px; }
+
+.suggestion-actions { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.suggestion-status-text { font-size: 11px; color: var(--text-secondary); font-style: italic; }
+
+.btn-accept { color: var(--green); border-color: var(--green); background: #fff; }
+.btn-accept:hover { background: var(--green-bg); }
+.btn-reject { color: var(--red); border-color: var(--red); background: #fff; }
+.btn-reject:hover { background: var(--red-bg); }
+
+/* Comment thread */
+.comment-thread { border-top: 1px solid var(--border); padding-top: 8px; }
+.comment-item { display: flex; gap: 8px; padding: 6px 0; }
+.comment-item .user-avatar { width: 18px; height: 18px; font-size: 8px; flex-shrink: 0; margin-top: 1px; }
+.comment-content { flex: 1; min-width: 0; }
+.comment-meta { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.comment-meta span { font-weight: 400; color: var(--text-secondary); margin-left: 6px; }
+.comment-text { font-size: 12px; line-height: 1.5; color: var(--text); }
+
+.comment-input-row { display: flex; gap: 6px; margin-top: 8px; }
+.comment-input-row input {
+  flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px;
+  font-size: 12px; font-family: var(--font-ui); outline: none;
+}
+.comment-input-row input:focus { border-color: var(--primary); }
+.comment-input-row button {
+  padding: 6px 10px; border-radius: 4px; border: none; background: var(--primary);
+  color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-ui);
+}
+
+/* History Panel */
+.history-list { padding: 16px; }
+.history-phase-header {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase;
+  padding: 8px 0; display: flex; align-items: center; gap: 8px;
+}
+.history-phase-header.drafting { color: var(--draft-color); }
+.history-phase-header.redlining { color: var(--frozen-color); }
+
+.history-divider {
+  display: flex; align-items: center; gap: 10px; padding: 12px 0; color: var(--text-secondary); font-size: 12px;
+}
+.history-divider::before, .history-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.history-entry { display: flex; gap: 10px; padding: 8px 0; }
+.history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.history-dot.drafting { background: var(--draft-color); }
+.history-dot.redlining { background: var(--frozen-color); }
+
+.history-entry-content { flex: 1; min-width: 0; }
+.history-version {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--text-secondary); background: var(--bg); padding: 1px 5px; border-radius: 3px;
+}
+.history-summary { font-size: 13px; margin-top: 4px; line-height: 1.5; }
+.history-time { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.history-details {
+  margin-top: 8px; padding: 10px 12px; background: var(--bg); border-radius: 6px;
+  font-size: 13px; line-height: 1.7; display: none; border: 1px solid var(--border);
+}
+.history-details.open { display: block; }
+.history-toggle {
+  font-size: 11px; color: var(--primary); cursor: pointer; margin-top: 4px;
+  background: none; border: none; font-family: var(--font-ui); font-weight: 500;
+}
+.history-toggle:hover { text-decoration: underline; }
+
+/* ========== Empty / Placeholder State ========== */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--text-secondary); gap: 12px; padding: 32px;
+}
+.empty-state svg { width: 48px; height: 48px; opacity: 0.3; }
+.empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); }
+.empty-state p { font-size: 13px; text-align: center; max-width: 300px; line-height: 1.6; }
+
+/* ========== Floating Toolbar ========== */
+.floating-toolbar {
+  position: fixed; z-index: 100; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 6px;
+  display: none;
+}
+.floating-toolbar.visible { display: block; }
+.floating-toolbar button {
+  padding: 6px 12px; border: none; background: var(--primary); color: #fff;
+  border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: var(--font-ui);
+}
+.floating-toolbar button:hover { background: var(--primary-hover); }
+
+/* Suggestion Popover */
+.suggestion-popover {
+  position: fixed; z-index: 110; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 16px; width: 320px;
+  display: none;
+}
+.suggestion-popover.visible { display: block; }
+.suggestion-popover h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.suggestion-popover .original-text {
+  font-size: 12px; color: var(--text-secondary); padding: 8px; background: var(--bg);
+  border-radius: 4px; margin-bottom: 10px; font-family: var(--font-doc); line-height: 1.5;
+  max-height: 80px; overflow-y: auto;
+}
+.suggestion-popover textarea {
+  width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--font-doc); font-size: 13px; line-height: 1.5; resize: vertical;
+  min-height: 60px; outline: none;
+}
+.suggestion-popover textarea:focus { border-color: var(--primary); }
+.suggestion-popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* ========== Modal ========== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200;
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.visible { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  max-width: 480px; width: 90%; padding: 24px;
+}
+.modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.modal label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--text); }
+.modal input[type="text"] {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 14px; font-family: var(--font-ui); outline: none; margin-bottom: 14px;
+}
+.modal input[type="text"]:focus { border-color: var(--primary); }
+.modal textarea {
+  width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 14px; font-family: var(--font-doc); line-height: 1.6; resize: vertical;
+  min-height: 120px; outline: none; margin-bottom: 14px;
+}
+.modal textarea:focus { border-color: var(--primary); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Freeze confirm modal */
+.freeze-modal .warning-icon { font-size: 32px; margin-bottom: 8px; }
+.freeze-modal p { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px; }
+.freeze-modal .warning-text { font-size: 12px; font-weight: 600; color: var(--red); margin-bottom: 16px; }
+
+/* ========== Search Results ========== */
+.search-results { padding: 24px 32px; max-width: 780px; margin: 0 auto; }
+.search-results h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.search-result-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s;
+}
+.search-result-card:hover { box-shadow: var(--shadow); border-color: var(--primary); }
+.search-result-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.search-result-snippet { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.search-result-snippet mark { background: var(--pending-bg); color: var(--text); padding: 1px 2px; border-radius: 2px; }
+.search-score-badge {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+  padding: 3px 10px; border-radius: 12px; font-weight: 600; margin-left: auto; white-space: nowrap;
+}
+.search-score-badge.high { background: #dcfce7; color: #166534; }
+.search-score-badge.medium { background: #fef9c3; color: #854d0e; }
+.search-score-badge.low { background: #f3f4f6; color: #6b7280; }
+.search-score-detail { font-size: 11px; font-weight: 400; color: inherit; opacity: 0.75; }
+.search-snippet-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 6px; border-radius: 3px; margin-right: 6px; display: inline-block;
+}
+.search-snippet-label.text { background: #dbeafe; color: #1e40af; }
+.search-snippet-label.semantic { background: #ede9fe; color: #6d28d9; }
+.search-semantic-sim { font-size: 11px; color: #6d28d9; font-weight: 500; margin-left: 4px; }
+.loading-spinner {
+  display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite;
+  vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========== Toast ========== */
+.toast-container { position: fixed; top: 16px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 12px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-md); animation: toast-in 0.3s ease; min-width: 240px;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.success { background: var(--green); color: #fff; }
+.toast.error { background: var(--red); color: #fff; }
+.toast.warning { background: var(--warning); color: #fff; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-12px); }
+}
+
+/* ========== Scrollbar ========== */
+.doc-scroll::-webkit-scrollbar { width: 6px; }
+.doc-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ========== Tooltip ========== */
+.suggestion-tooltip {
+  position: absolute; z-index: 50; background: var(--surface); border: 1px solid var(--pending-border);
+  border-radius: 6px; padding: 8px 12px; box-shadow: var(--shadow-md); font-size: 12px;
+  max-width: 260px; pointer-events: none; line-height: 1.5; display: none;
+}
+.suggestion-tooltip .tip-label { font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-secondary); margin-bottom: 4px; }
+.suggestion-tooltip .tip-text { font-family: var(--font-doc); font-size: 13px; }
+
+/* ========== Inline Suggestion Marks (always visible in frozen mode) ========== */
+.suggestion-inline {
+  cursor: pointer;
+  border-radius: 2px;
+}
+.suggestion-del {
+  color: #DC2626;
+  text-decoration: line-through;
+  background: rgba(220, 38, 38, 0.08);
+  padding: 1px 2px;
+}
+.suggestion-ins {
+  color: #16A34A;
+  text-decoration: underline;
+  background: rgba(22, 163, 74, 0.08);
+  padding: 1px 2px;
+}
+.suggestion-badge {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: #CA8A04;
+  background: #FEF9C3;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+  vertical-align: super;
+  cursor: pointer;
+}
+.suggestion-accepted-inline {
+  color: var(--green);
+  background: rgba(22, 163, 74, 0.06);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+/* ========== Paginated Pages ========== */
+.doc-paper.paginated {
+  background: none; border: none; box-shadow: none;
+  padding: 0; min-height: auto;
+  display: flex; flex-direction: column; gap: 32px;
+  overflow: visible; white-space: normal;
+}
+.doc-paper.paginated .doc-page {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 48px; font-family: var(--font-doc);
+  font-size: 16px; line-height: 1.8; color: var(--text); white-space: pre-wrap;
+  position: relative; overflow: hidden;
+  height: 1056px; flex-shrink: 0;
+  box-sizing: border-box;
+}
+.doc-paper.paginated .doc-page:last-child {
+  height: auto;
+  min-height: 200px;
+}
+.doc-paper.paginated .doc-page.frozen-page {
+  border-top: 3px solid var(--frozen-color);
+}
+
+/* ========== Version Diff View ========== */
+.diff-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: #EFF6FF; border: 1px solid #BFDBFE;
+  border-radius: 6px; margin-bottom: 16px; font-size: 13px; font-weight: 500;
+  color: #1E40AF;
+}
+.diff-banner button {
+  padding: 5px 12px; border-radius: 4px; border: 1px solid #93C5FD;
+  background: #fff; color: #1E40AF; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: var(--font-ui);
+}
+.diff-banner button:hover { background: #DBEAFE; }
+.diff-removed {
+  color: #DC2626;
+  text-decoration: line-through;
+  background: rgba(220, 38, 38, 0.08);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+.diff-added {
+  color: #16A34A;
+  text-decoration: underline;
+  background: rgba(22, 163, 74, 0.08);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+.diff-context {
+  opacity: 0.55;
+}
+.doc-paper.diff-mode {
+  background: #F8FAFC;
+  border: 2px dashed #93C5FD;
+  box-shadow: none;
+  user-select: none;
+}
+.doc-paper.diff-mode .diff-banner {
+  pointer-events: auto;
+  user-select: auto;
+}
+
+/* ========== History Entry Selected State ========== */
+.history-entry.selected {
+  border-left: 3px solid var(--primary);
+  background: rgba(30, 64, 175, 0.04);
+  padding-left: 8px;
+  border-radius: 4px;
+  margin-left: -3px;
+}
+.history-entry {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.history-entry:hover {
+  background: rgba(0,0,0,0.02);
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+  <!-- Header -->
+  <header class="app-header">
+    <h1>Redline</h1>
+    <div class="header-center" id="headerCenter"></div>
+    <div class="header-right">
+      <div class="user-identity" id="userIdentity"></div>
+      <div class="health-indicator" id="healthIndicator" title="API Health">
+        <span class="health-dot" id="healthDot"></span>
+        <span id="healthLabel">API</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Search documents...">
+      </div>
+      <div class="doc-list" id="docList"></div>
+      <div class="sidebar-new">
+        <button id="newDocBtn">+ New Document</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <div class="empty-state" id="emptyState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M8 7h8M8 11h8M8 15h4"/></svg>
+        <h3>No document selected</h3>
+        <p>Select a document from the sidebar or create a new one to get started.</p>
+      </div>
+
+      <!-- Document View (hidden by default) -->
+      <div id="docView" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+        <div class="doc-topbar">
+          <div class="doc-topbar-left">
+            <input type="text" class="doc-title-input" id="docTitleInput" placeholder="Untitled">
+            <span class="phase-badge-lg" id="docPhaseBadge"></span>
+            <span class="frozen-date" id="frozenDate"></span>
+          </div>
+          <div class="doc-topbar-right" id="docTopbarRight"></div>
+        </div>
+        <div class="doc-scroll">
+          <div class="doc-paper" id="docPaper"></div>
+        </div>
+      </div>
+
+      <!-- Search Results (hidden by default) -->
+      <div id="searchResultsView" style="display:none; flex:1; overflow-y:auto;">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel" id="rightPanel">
+      <div class="panel-tabs">
+        <button class="panel-tab active" data-tab="suggestions" id="tabSuggestions">Suggestions</button>
+        <button class="panel-tab" data-tab="history" id="tabHistory">History</button>
+      </div>
+      <div class="panel-content" id="panelContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Toolbar for text selection -->
+<div class="floating-toolbar" id="floatingToolbar">
+  <button id="suggestReplacementBtn">Suggest Replacement</button>
+</div>
+
+<!-- Suggestion Popover -->
+<div class="suggestion-popover" id="suggestionPopover">
+  <h4>Suggest Replacement</h4>
+  <div class="original-text" id="popoverOriginal"></div>
+  <label style="font-size:12px;font-weight:600;margin-bottom:6px;display:block;">Replacement:</label>
+  <textarea id="popoverReplacement" placeholder="Type the replacement text..."></textarea>
+  <div class="suggestion-popover-actions">
+    <button class="btn btn-sm" id="popoverCancel">Cancel</button>
+    <button class="btn btn-sm btn-primary" id="popoverSubmit">Suggest</button>
+  </div>
+</div>
+
+<!-- Suggestion inline tooltip -->
+<div class="suggestion-tooltip" id="suggestionTooltip">
+  <div class="tip-label">Suggested replacement</div>
+  <div class="tip-text" id="tooltipText"></div>
+</div>
+
+<!-- Create Document Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <h2>New Document</h2>
+    <label for="newDocTitle">Title</label>
+    <input type="text" id="newDocTitle" placeholder="Document title">
+    <label for="newDocContent">Content</label>
+    <textarea id="newDocContent" placeholder="Start writing..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="createCancel">Cancel</button>
+      <button class="btn btn-primary" id="createSubmit">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Freeze Confirmation Modal -->
+<div class="modal-overlay" id="freezeModal">
+  <div class="modal freeze-modal">
+    <div class="warning-icon">&#9888;</div>
+    <h2>Freeze Document</h2>
+    <p>This will permanently lock the document for direct editing. All future changes will need to be proposed as suggestions and approved by another reviewer.</p>
+    <p class="warning-text">This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" id="freezeCancel">Cancel</button>
+      <button class="btn btn-freeze" id="freezeConfirm">Freeze Document</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================================
+// User Identity
+// ============================================================
+function getOrCreateUser() {
+  let user = localStorage.getItem('redline_user');
+  if (!user) {
+    user = 'guest' + String(Math.floor(1000 + Math.random() * 9000));
+    localStorage.setItem('redline_user', user);
+  }
+  return user;
+}
+const currentUser = getOrCreateUser();
+
+function hashColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+  const colors = ['#1E40AF','#7C3AED','#DC2626','#16A34A','#CA8A04','#0891B2','#BE185D','#4338CA','#0D9488','#C2410C'];
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function avatarHTML(name, size) {
+  const s = size || 28;
+  const letter = (name || '?')[0].toUpperCase();
+  const bg = hashColor(name || '');
+  return `<span class="user-avatar" style="width:${s}px;height:${s}px;background:${bg};font-size:${Math.round(s * 0.39)}px">${escapeHTML(letter)}</span>`;
+}
+
+function escapeHTML(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function getDocContent(el) {
+  // Extract content from contenteditable, preserving safe HTML tags but converting <br>/divs to newlines
+  let html = el.innerHTML;
+  // Convert <br> and block boundaries to newlines
+  html = html.replace(/<br\s*\/?>/gi, '\n');
+  html = html.replace(/<\/div>\s*<div>/gi, '\n');
+  html = html.replace(/<\/?div>/gi, '\n');
+  html = html.replace(/<\/?p>/gi, '\n');
+  // Strip all tags EXCEPT our safe formatting tags
+  html = html.replace(/<(?!\/?(?:strong|em|u|b|i)\b)[^>]+>/gi, '');
+  // Decode HTML entities
+  const d = document.createElement('textarea');
+  d.innerHTML = html;
+  let result = d.value;
+  // Collapse multiple consecutive newlines to max 2
+  result = result.replace(/\n{3,}/g, '\n\n');
+  return result.trim();
+}
+
+function sanitizeHTML(s) {
+  // Allow only safe formatting tags: strong, em, u, b, i, br
+  // First escape everything, then unescape the allowed tags
+  let safe = escapeHTML(s);
+  const allowed = ['strong', 'em', 'u', 'b', 'i', 'br'];
+  allowed.forEach(tag => {
+    safe = safe.replace(new RegExp(`&lt;${tag}&gt;`, 'gi'), `<${tag}>`);
+    safe = safe.replace(new RegExp(`&lt;/${tag}&gt;`, 'gi'), `</${tag}>`);
+  });
+  // Convert newlines to <br> for proper display
+  safe = safe.replace(/\n/g, '<br>');
+  return safe;
+}
+
+// Render user identity in header
+document.getElementById('userIdentity').innerHTML = `${avatarHTML(currentUser)} <span>You: ${escapeHTML(currentUser)}</span>`;
+
+// ============================================================
+// Relative Time
+// ============================================================
+function relativeTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 10) return 'just now';
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+  return d.toLocaleDateString();
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ============================================================
+// Toast
+// ============================================================
+function showToast(msg, type) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || 'success');
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.animation = 'toast-out 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ============================================================
+// API
+// ============================================================
+const API = '';
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (res.status === 204) return null;
+  if (res.status === 409) { showToast('Conflict: document was modified elsewhere. Refreshing...', 'warning'); await loadDocument(activeDocId); throw new Error('conflict'); }
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.detail || err.error || res.statusText); }
+  if (res.headers.get('content-type')?.includes('json')) return res.json();
+  return null;
+}
+
+// ============================================================
+// State
+// ============================================================
+let documents = [];
+let activeDocId = null;
+let activeDoc = null;
+let suggestions = [];
+let history = [];
+let saveTimer = null;
+let activeTab = 'suggestions';
+let suggestionFilter = 'all';
+let selectedText = '';
+let selectedRange = null;
+let activeSuggestionId = null;
+let selectedVersion = null;
+
+// ============================================================
+// Health Check
+// ============================================================
+async function checkHealth() {
+  try {
+    const r = await fetch(API + '/health');
+    const d = await r.json();
+    document.getElementById('healthDot').className = 'health-dot' + (d.status === 'ok' ? '' : ' unhealthy');
+  } catch {
+    document.getElementById('healthDot').className = 'health-dot unhealthy';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 30000);
+
+// ============================================================
+// Document List
+// ============================================================
+async function loadDocuments() {
+  try {
+    const r = await api('GET', '/documents?limit=100');
+    documents = r.documents || r || [];
+    renderDocList();
+  } catch (e) { console.error('loadDocuments', e); }
+}
+
+function renderDocList(filter) {
+  const list = document.getElementById('docList');
+  let docs = documents;
+  if (filter) {
+    const q = filter.toLowerCase();
+    docs = docs.filter(d => d.title.toLowerCase().includes(q));
+  }
+  if (!docs.length) {
+    list.innerHTML = '<div style="padding:20px 16px;color:var(--sidebar-text);font-size:12px;text-align:center;">No documents found</div>';
+    return;
+  }
+  list.innerHTML = docs.map(d => {
+    const isFrozen = !!d.frozen_at;
+    const phase = isFrozen ? 'frozen' : 'draft';
+    const isActive = d.id === activeDocId;
+    return `<div class="doc-item${isActive ? ' active' : ''}" data-id="${d.id}">
+      <div class="doc-item-title">${escapeHTML(d.title || 'Untitled')}</div>
+      <div class="doc-item-meta">
+        <span class="phase-badge ${phase}">${phase}</span>
+        <span class="doc-item-version">v${d.version || 1} &middot; ${relativeTime(d.updated_at || d.created_at)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.doc-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      clearSearchView();
+      loadDocument(id);
+    });
+  });
+}
+
+// ============================================================
+// Load Document
+// ============================================================
+async function loadDocument(id) {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  activeDocId = id;
+  selectedVersion = null;
+  try {
+    activeDoc = await api('GET', `/documents/${id}`);
+    renderDocView();
+    renderDocList();
+    loadSuggestions();
+    loadHistory();
+  } catch (e) { showToast('Failed to load document: ' + e.message, 'error'); }
+}
+
+// ============================================================
+// Pagination for frozen documents
+// ============================================================
+function paginateIntoPages() {
+  const paper = document.getElementById('docPaper');
+  if (!activeDoc || !activeDoc.frozen_at) return;
+
+  // Reset pagination state
+  paper.classList.remove('paginated');
+
+  const PAGE_CONTENT_HEIGHT = 960;
+
+  // Check if content exceeds one page
+  if (paper.scrollHeight <= PAGE_CONTENT_HEIGHT) return;
+
+  const contentHTML = paper.innerHTML;
+  if (!contentHTML.trim()) return;
+
+  // Split HTML at <br> tags, keeping the <br> as separators
+  const parts = contentHTML.split(/(<br\s*\/?>)/gi);
+  // Rebuild as logical lines: each line = text segment + trailing <br>
+  const lines = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (/<br\s*\/?>/i.test(part)) {
+      // Append this <br> to the previous line, or start a new empty line
+      if (lines.length > 0) {
+        lines[lines.length - 1] += part;
+      } else {
+        lines.push(part);
+      }
+    } else {
+      lines.push(part);
+    }
+  }
+
+  if (lines.length === 0) return;
+
+  // Create a measurer with the same styling as the paper content area
+  const cs = getComputedStyle(paper);
+  const measurer = document.createElement('div');
+  measurer.style.cssText = `
+    position: absolute; visibility: hidden; left: -9999px;
+    width: ${paper.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)}px;
+    font-family: ${cs.fontFamily}; font-size: ${cs.fontSize};
+    line-height: ${cs.lineHeight}; white-space: pre-wrap;
+    word-wrap: break-word; overflow-wrap: break-word;
+  `;
+  document.body.appendChild(measurer);
+
+  const pages = [];
+  let currentLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    currentLines.push(lines[i]);
+    measurer.innerHTML = currentLines.join('');
+
+    if (measurer.scrollHeight > PAGE_CONTENT_HEIGHT) {
+      if (currentLines.length === 1) {
+        // Single line exceeds page — give it its own page
+        pages.push(currentLines.join(''));
+        currentLines = [];
+      } else {
+        // Pop the last line and finalize the current page
+        currentLines.pop();
+        pages.push(currentLines.join(''));
+        currentLines = [lines[i]];
+      }
+    }
+  }
+  if (currentLines.length > 0) {
+    pages.push(currentLines.join(''));
+  }
+
+  document.body.removeChild(measurer);
+
+  if (pages.length <= 1) return;
+
+  // Apply pagination
+  paper.classList.add('paginated');
+  paper.contentEditable = 'false';
+  paper.innerHTML = pages.map(p =>
+    `<div class="doc-page frozen-page">${p}</div>`
+  ).join('');
+}
+
+// Event delegation for interactive elements inside docPaper
+// (survives innerHTML rebuilds from pagination)
+document.getElementById('docPaper').addEventListener('click', function(e) {
+  // Suggestion inline/accepted clicks
+  const suggEl = e.target.closest('.suggestion-inline, .suggestion-accepted-inline');
+  if (suggEl) {
+    const sid = suggEl.dataset.sid;
+    activeSuggestionId = sid;
+    activeTab = 'suggestions';
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'suggestions'));
+    renderSuggestionsPanel();
+    return;
+  }
+
+  // Suggestion badge clicks
+  const badge = e.target.closest('.suggestion-badge');
+  if (badge) {
+    e.stopPropagation();
+    const sid = badge.dataset.sid;
+    activeSuggestionId = sid;
+    activeTab = 'suggestions';
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'suggestions'));
+    renderSuggestionsPanel();
+    setTimeout(() => {
+      const card = document.querySelector(`.suggestion-card[data-sid="${sid}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    return;
+  }
+
+  // "Back to current" button in version diff
+  if (e.target.id === 'backToCurrentBtn' || e.target.closest('#backToCurrentBtn')) {
+    selectedVersion = null;
+    renderHistoryPanel();
+    renderVersionDiff();
+    return;
+  }
+});
+
+// ============================================================
+// Render Document View
+// ============================================================
+function renderDocView() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('searchResultsView').style.display = 'none';
+  const dv = document.getElementById('docView');
+  dv.style.display = 'flex';
+
+  const doc = activeDoc;
+  const isFrozen = !!doc.frozen_at;
+
+  // Title
+  const titleInput = document.getElementById('docTitleInput');
+  titleInput.value = doc.title || '';
+  titleInput.readOnly = isFrozen;
+
+  // Phase badge
+  const badge = document.getElementById('docPhaseBadge');
+  badge.className = 'phase-badge-lg ' + (isFrozen ? 'frozen' : 'draft');
+  badge.textContent = isFrozen ? 'FROZEN' : 'DRAFT';
+
+  // Frozen date
+  const frozenDateEl = document.getElementById('frozenDate');
+  frozenDateEl.textContent = isFrozen ? 'Frozen on ' + formatDate(doc.frozen_at) : '';
+
+  // Topbar right buttons
+  const topRight = document.getElementById('docTopbarRight');
+  let btns = '';
+  if (!isFrozen) {
+    btns += `<button class="btn btn-freeze" id="freezeBtn">&#x1F512; Freeze</button>`;
+    btns += `<button class="btn btn-danger" id="deleteBtn">Delete</button>`;
+  }
+  topRight.innerHTML = btns;
+
+  if (!isFrozen && document.getElementById('freezeBtn')) {
+    document.getElementById('freezeBtn').addEventListener('click', () => {
+      document.getElementById('freezeModal').classList.add('visible');
+    });
+  }
+  if (!isFrozen && document.getElementById('deleteBtn')) {
+    document.getElementById('deleteBtn').addEventListener('click', deleteDocument);
+  }
+
+  // Header center: save status or phase status
+  const hc = document.getElementById('headerCenter');
+  if (isFrozen) {
+    hc.innerHTML = `<div class="phase-status">&#x1F512; Frozen &middot; Redlining Mode</div>`;
+  } else {
+    hc.innerHTML = `<div class="save-status" id="saveStatus"><span class="save-dot saved" id="saveDot"></span><span id="saveLabel">Saved</span></div>`;
+  }
+
+  // Document paper
+  const paper = document.getElementById('docPaper');
+  paper.className = 'doc-paper' + (isFrozen ? ' frozen-paper' : '');
+  paper.contentEditable = isFrozen ? 'false' : 'true';
+  if (isFrozen) {
+    paper.innerHTML = sanitizeHTML(doc.content || '');
+  } else {
+    paper.innerHTML = sanitizeHTML(doc.content || '');
+  }
+
+  // Bind events
+  paper.removeEventListener('input', onDocInput);
+  if (!isFrozen) {
+    paper.addEventListener('input', onDocInput);
+  }
+
+  // Paginate frozen documents into multiple pages
+  if (isFrozen) {
+    paginateIntoPages();
+  }
+}
+
+// ============================================================
+// Auto-save (Drafting Phase)
+// ============================================================
+function onDocInput() {
+  updateSaveStatus('unsaved');
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDocument, 3000);
+}
+
+async function saveDocument() {
+  if (!activeDoc || activeDoc.frozen_at) return;
+  updateSaveStatus('saving');
+  const paper = document.getElementById('docPaper');
+  try {
+    const result = await api('PUT', `/documents/${activeDocId}/content`, {
+      content: getDocContent(paper),
+      version: activeDoc.version
+    });
+    activeDoc = result;
+    updateSaveStatus('saved');
+    loadDocuments();
+  } catch (e) {
+    if (e.message !== 'conflict') {
+      updateSaveStatus('error');
+      showToast('Save failed: ' + e.message, 'error');
+    }
+  }
+}
+
+function updateSaveStatus(state) {
+  const dot = document.getElementById('saveDot');
+  const label = document.getElementById('saveLabel');
+  if (!dot || !label) return;
+  dot.className = 'save-dot ' + state;
+  const labels = { saved: 'Saved \u2713', saving: 'Saving...', unsaved: 'Unsaved', error: 'Error' };
+  label.textContent = labels[state] || '';
+}
+
+// ============================================================
+// Title editing (drafting only)
+// ============================================================
+document.getElementById('docTitleInput').addEventListener('change', async function() {
+  if (!activeDoc || activeDoc.frozen_at) return;
+  // Title change triggers a save
+  if (saveTimer) clearTimeout(saveTimer);
+  saveDocument();
+});
+
+// ============================================================
+// Freeze
+// ============================================================
+document.getElementById('freezeConfirm').addEventListener('click', async () => {
+  document.getElementById('freezeModal').classList.remove('visible');
+  try {
+    activeDoc = await api('POST', `/documents/${activeDocId}/freeze`);
+    showToast('Document frozen. Redlining mode active.', 'success');
+    renderDocView();
+    loadDocuments();
+    loadSuggestions();
+    loadHistory();
+  } catch (e) { showToast('Failed to freeze: ' + e.message, 'error'); }
+});
+document.getElementById('freezeCancel').addEventListener('click', () => {
+  document.getElementById('freezeModal').classList.remove('visible');
+});
+
+// ============================================================
+// Delete
+// ============================================================
+async function deleteDocument() {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/documents/${activeDocId}`);
+    activeDocId = null;
+    activeDoc = null;
+    document.getElementById('docView').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('headerCenter').innerHTML = '';
+    document.getElementById('panelContent').innerHTML = '';
+    showToast('Document deleted.', 'success');
+    loadDocuments();
+  } catch (e) { showToast('Failed to delete: ' + e.message, 'error'); }
+}
+
+// ============================================================
+// Create Document
+// ============================================================
+document.getElementById('newDocBtn').addEventListener('click', () => {
+  document.getElementById('newDocTitle').value = '';
+  document.getElementById('newDocContent').value = '';
+  document.getElementById('createModal').classList.add('visible');
+  document.getElementById('newDocTitle').focus();
+});
+document.getElementById('createCancel').addEventListener('click', () => {
+  document.getElementById('createModal').classList.remove('visible');
+});
+document.getElementById('createSubmit').addEventListener('click', async () => {
+  const title = document.getElementById('newDocTitle').value.trim();
+  const content = document.getElementById('newDocContent').value;
+  if (!title) { showToast('Title is required.', 'warning'); return; }
+  try {
+    const doc = await api('POST', '/documents', { title, content });
+    document.getElementById('createModal').classList.remove('visible');
+    showToast('Document created.', 'success');
+    await loadDocuments();
+    clearSearchView();
+    loadDocument(doc.id);
+  } catch (e) { showToast('Failed to create: ' + e.message, 'error'); }
+});
+
+// ============================================================
+// Search
+// ============================================================
+let searchDebounce = null;
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.trim();
+  if (searchDebounce) clearTimeout(searchDebounce);
+  if (!q) { clearSearchView(); renderDocList(); return; }
+  // Local sidebar filtering
+  renderDocList(q);
+  // API search with debounce
+  searchDebounce = setTimeout(() => performSearch(q), 400);
+});
+
+async function performSearch(q) {
+  // Show loading state
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('docView').style.display = 'none';
+  const sv = document.getElementById('searchResultsView');
+  sv.style.display = 'flex';
+  const container = document.getElementById('searchResults');
+  container.innerHTML = `<h2>Search: "${escapeHTML(q)}"</h2><p style="color:var(--text-secondary);margin-top:12px;"><span class="loading-spinner"></span> Searching...</p>`;
+  try {
+    const r = await api('GET', `/search?q=${encodeURIComponent(q)}`);
+    const results = r.results || r || [];
+    showSearchResults(q, results);
+  } catch (e) { console.error('search error', e); }
+}
+
+function showSearchResults(q, results) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('docView').style.display = 'none';
+  const sv = document.getElementById('searchResultsView');
+  sv.style.display = 'flex';
+  const container = document.getElementById('searchResults');
+  if (!results.length) {
+    container.innerHTML = `<h2>Search: "${escapeHTML(q)}"</h2><p style="color:var(--text-secondary);margin-top:12px;">No results found.</p>`;
+    return;
+  }
+  container.innerHTML = `<h2>Search: "${escapeHTML(q)}" (${results.length} result${results.length === 1 ? '' : 's'})</h2>` +
+    results.map(r => {
+      const isFrozen = !!r.frozen_at;
+      // Separate text snippets from semantic snippets
+      const snippets = r.snippets || [];
+      const textSnippets = snippets.filter(s => !s.context_after || !s.context_after.includes('[semantic:'));
+      const semanticSnippets = snippets.filter(s => s.context_after && s.context_after.includes('[semantic:'));
+      // Render text match snippets
+      let snippetHtml = '';
+      if (textSnippets.length > 0) {
+        const textPreview = textSnippets.map(s => (s.context_before || '') + s.text + (s.context_after || '')).join(' ... ').substring(0, 250);
+        const highlighted = escapeHTML(textPreview).replace(new RegExp(escapeHTML(q), 'gi'), m => `<mark>${m}</mark>`);
+        snippetHtml += `<div class="search-result-snippet"><span class="search-snippet-label text">text match</span>${highlighted}</div>`;
+      }
+      // Render semantic match snippets
+      if (semanticSnippets.length > 0) {
+        semanticSnippets.forEach(s => {
+          const simMatch = s.context_after.match(/\[semantic: (\d+)%\]/);
+          const simPct = simMatch ? simMatch[1] : '?';
+          snippetHtml += `<div class="search-result-snippet"><span class="search-snippet-label semantic">semantic</span>${escapeHTML(s.text)}<span class="search-semantic-sim">${simPct}% similar</span></div>`;
+        });
+      }
+      // Fallback for legacy format
+      if (!snippetHtml && (r.snippet || r.content)) {
+        const fallback = (r.snippet || r.content || '').substring(0, 200);
+        snippetHtml = `<div class="search-result-snippet">${escapeHTML(fallback)}</div>`;
+      }
+      // Score badge
+      const score = r.score || 0;
+      const scoreClass = score > 70 ? 'high' : score > 40 ? 'medium' : 'low';
+      const bd = r.score_breakdown;
+      let scoreDetail = '';
+      if (bd) {
+        const parts = [`text: ${Math.round(bd.text_score)}%`];
+        if (bd.semantic_score !== null && bd.semantic_score !== undefined) parts.push(`meaning: ${Math.round(bd.semantic_score)}%`);
+        scoreDetail = `<span class="search-score-detail">(${parts.join(', ')})</span>`;
+      }
+      const scoreBadge = score > 0 ? `<span class="search-score-badge ${scoreClass}">${Math.round(score)}% ${scoreDetail}</span>` : '';
+      const title = r.title || r.document_title || 'Untitled';
+      return `<div class="search-result-card" data-id="${r.id || r.document_id}">
+        <div class="search-result-title">${escapeHTML(title)} <span class="phase-badge ${isFrozen ? 'frozen' : 'draft'}">${isFrozen ? 'frozen' : 'draft'}</span>${scoreBadge}</div>
+        ${snippetHtml}
+      </div>`;
+    }).join('');
+
+  container.querySelectorAll('.search-result-card').forEach(el => {
+    el.addEventListener('click', () => {
+      clearSearchView();
+      loadDocument(el.dataset.id);
+    });
+  });
+}
+
+function clearSearchView() {
+  document.getElementById('searchResultsView').style.display = 'none';
+}
+
+// ============================================================
+// Suggestions (Frozen Phase)
+// ============================================================
+async function loadSuggestions() {
+  if (!activeDocId || !activeDoc) return;
+  try {
+    const statusParam = suggestionFilter === 'all' ? '' : `?status=${suggestionFilter}`;
+    const r = await api('GET', `/documents/${activeDocId}/suggestions${statusParam}`);
+    suggestions = r.suggestions || r || [];
+    if (activeTab === 'suggestions') renderSuggestionsPanel();
+    if (activeDoc.frozen_at) renderInlineSuggestions();
+  } catch (e) { console.error('loadSuggestions', e); }
+}
+
+function renderSuggestionsPanel() {
+  const pc = document.getElementById('panelContent');
+  const isFrozen = activeDoc && !!activeDoc.frozen_at;
+  const pending = suggestions.filter(s => s.status === 'pending').length;
+
+  let html = `<div class="suggestions-header">
+    <h3>Suggestions${pending > 0 ? ` (${pending} pending)` : ''}</h3>
+    <div class="filter-pills">
+      ${['all','pending','accepted','rejected'].map(f =>
+        `<button class="filter-pill${suggestionFilter === f ? ' active' : ''}" data-filter="${f}">${f.charAt(0).toUpperCase() + f.slice(1)}</button>`
+      ).join('')}
+    </div>
+  </div>`;
+
+  if (!isFrozen) {
+    html += `<div style="padding:32px 16px;text-align:center;color:var(--text-secondary);font-size:13px;">Suggestions are available after the document is frozen.</div>`;
+    pc.innerHTML = html;
+    return;
+  }
+
+  if (!suggestions.length) {
+    html += `<div style="padding:32px 16px;text-align:center;color:var(--text-secondary);font-size:13px;">No suggestions yet. Select text in the document to propose a change.</div>`;
+    pc.innerHTML = html;
+    bindFilterPills();
+    return;
+  }
+
+  html += `<div class="suggestion-list">`;
+  for (const s of suggestions) {
+    const statusClass = s.status || 'pending';
+    const isOwn = s.author === currentUser;
+    const isActive = activeSuggestionId === s.id;
+
+    html += `<div class="suggestion-card${isActive ? ' active-card' : ''}" data-sid="${s.id}">
+      <div class="suggestion-card-inner">
+        <div class="suggestion-bar ${statusClass}"></div>
+        <div class="suggestion-body">
+          <div class="suggestion-author">
+            ${avatarHTML(s.author, 20)}
+            <span class="suggestion-author-name">${escapeHTML(s.author)}</span>
+            <span class="suggestion-time">${relativeTime(s.created_at)}</span>
+          </div>
+          <div class="suggestion-diff">
+            <span class="diff-del">${escapeHTML(s.original_text)}</span>
+            <span class="diff-arrow">&rarr;</span>
+            <span class="diff-ins">${escapeHTML(s.replacement_text)}</span>
+          </div>`;
+
+    // Actions
+    if (statusClass === 'pending') {
+      html += `<div class="suggestion-actions">`;
+      if (isOwn) {
+        html += `<span class="suggestion-status-text">Awaiting review</span>
+          <button class="btn btn-sm btn-danger" data-action="withdraw" data-sid="${s.id}">Withdraw</button>`;
+      } else {
+        html += `<button class="btn btn-sm btn-accept" data-action="accept" data-sid="${s.id}">\u2713 Accept</button>
+          <button class="btn btn-sm btn-reject" data-action="reject" data-sid="${s.id}">\u2715 Reject</button>`;
+      }
+      html += `</div>`;
+    } else {
+      const actor = s.reviewed_by || s.resolved_by || 'unknown';
+      const verb = statusClass === 'accepted' ? 'Accepted' : 'Rejected';
+      html += `<div class="suggestion-status-text">${verb} by ${escapeHTML(actor)}</div>`;
+    }
+
+    // Comments thread
+    const comments = s.comments || [];
+    html += `<div class="comment-thread">`;
+    for (const c of comments) {
+      html += `<div class="comment-item">
+        ${avatarHTML(c.author, 18)}
+        <div class="comment-content">
+          <div class="comment-meta">${escapeHTML(c.author)}<span>${relativeTime(c.created_at)}</span></div>
+          <div class="comment-text">${escapeHTML(c.content)}</div>
+        </div>
+      </div>`;
+    }
+    html += `<div class="comment-input-row">
+        <input type="text" placeholder="Add a comment..." data-sid="${s.id}">
+        <button data-comment-sid="${s.id}">Reply</button>
+      </div>`;
+    html += `</div>`; // comment-thread
+
+    html += `</div></div></div>`; // suggestion-body, card-inner, card
+  }
+  html += `</div>`;
+
+  pc.innerHTML = html;
+  bindFilterPills();
+  bindSuggestionActions();
+  bindCommentActions();
+  bindSuggestionCardClicks();
+}
+
+function bindFilterPills() {
+  document.querySelectorAll('.filter-pill').forEach(el => {
+    el.addEventListener('click', () => {
+      suggestionFilter = el.dataset.filter;
+      loadSuggestions();
+    });
+  });
+}
+
+function bindSuggestionActions() {
+  document.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const sid = el.dataset.sid;
+      const action = el.dataset.action;
+      try {
+        if (action === 'withdraw') {
+          await api('DELETE', `/documents/${activeDocId}/suggestions/${sid}`);
+          showToast('Suggestion withdrawn.', 'success');
+        } else {
+          await api('PATCH', `/documents/${activeDocId}/suggestions/${sid}`, { action, author: currentUser });
+          showToast(`Suggestion ${action}ed.`, 'success');
+        }
+        loadSuggestions();
+        loadHistory();
+        if (action === 'accept') loadDocument(activeDocId);
+      } catch (err) { showToast('Action failed: ' + err.message, 'error'); }
+    });
+  });
+}
+
+function bindCommentActions() {
+  document.querySelectorAll('[data-comment-sid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sid = btn.dataset.commentSid;
+      const input = document.querySelector(`input[data-sid="${sid}"]`);
+      const content = input.value.trim();
+      if (!content) return;
+      try {
+        await api('POST', `/documents/${activeDocId}/suggestions/${sid}/comments`, { content, author: currentUser });
+        input.value = '';
+        loadSuggestions();
+      } catch (err) { showToast('Comment failed: ' + err.message, 'error'); }
+    });
+  });
+  // Enter key support
+  document.querySelectorAll('.comment-input-row input').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const sid = input.dataset.sid;
+        document.querySelector(`[data-comment-sid="${sid}"]`).click();
+      }
+    });
+  });
+}
+
+function bindSuggestionCardClicks() {
+  document.querySelectorAll('.suggestion-card').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      const sid = el.dataset.sid;
+      activeSuggestionId = activeSuggestionId === sid ? null : sid;
+      renderSuggestionsPanel();
+      highlightInlineSuggestion(sid);
+    });
+  });
+}
+
+// ============================================================
+// Inline Suggestion Highlights (Frozen Phase)
+// ============================================================
+function renderInlineSuggestions() {
+  const paper = document.getElementById('docPaper');
+  if (!activeDoc || !activeDoc.frozen_at) return;
+
+  // If viewing a version diff, don't overwrite
+  if (selectedVersion !== null) return;
+
+  const content = activeDoc.content || '';
+  const relevantSuggestions = suggestions.filter(s => s.status === 'pending' || s.status === 'accepted');
+
+  if (!relevantSuggestions.length) {
+    paper.innerHTML = sanitizeHTML(content);
+    return;
+  }
+
+  // Sort by position in content (earlier first) to handle overlaps properly
+  const sorted = [...relevantSuggestions].sort((a, b) => {
+    const posA = content.indexOf(a.original_text);
+    const posB = content.indexOf(b.original_text);
+    return posA - posB;
+  });
+
+  let result = '';
+  let lastIdx = 0;
+  for (const s of sorted) {
+    const isPending = s.status === 'pending';
+    // For pending suggestions, look for original_text in content
+    // For accepted suggestions, the replacement is already in the content
+    const searchText = isPending ? s.original_text : s.replacement_text;
+    if (!searchText) continue;
+    const idx = content.indexOf(searchText, lastIdx);
+    if (idx === -1) continue;
+    result += sanitizeHTML(content.substring(lastIdx, idx));
+
+    if (isPending) {
+      // Show original as red strikethrough, replacement as green, plus author badge
+      result += `<span class="suggestion-inline" data-sid="${s.id}">`;
+      result += `<span class="suggestion-del">${escapeHTML(s.original_text)}</span>`;
+      result += `<span class="suggestion-ins">${escapeHTML(s.replacement_text)}</span>`;
+      result += `<span class="suggestion-badge" data-sid="${s.id}">${escapeHTML(s.author || '?')}</span>`;
+      result += `</span>`;
+    } else {
+      // Accepted: show original as red strikethrough + replacement as green
+      result += `<span class="suggestion-accepted-inline" data-sid="${s.id}" title="Accepted change">`;
+      if (s.original_text) {
+        result += `<span class="diff-removed">${escapeHTML(s.original_text)}</span>`;
+      }
+      result += `<span class="diff-added">${escapeHTML(s.replacement_text)}</span>`;
+      result += `</span>`;
+    }
+    lastIdx = idx + searchText.length;
+  }
+  result += sanitizeHTML(content.substring(lastIdx));
+  paper.innerHTML = result;
+
+  // Paginate into multiple pages (event handling is via delegation on paper)
+  paginateIntoPages();
+}
+
+function highlightInlineSuggestion(sid) {
+  document.querySelectorAll('.suggestion-highlight').forEach(el => {
+    if (el.dataset.sid === sid || String(el.dataset.sid) === String(sid)) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.outline = '2px solid var(--primary)';
+      setTimeout(() => { el.style.outline = ''; }, 2000);
+    }
+  });
+}
+
+// ============================================================
+// Text Selection → Floating Toolbar (Frozen Phase)
+// ============================================================
+document.addEventListener('mouseup', (e) => {
+  if (!activeDoc || !activeDoc.frozen_at || selectedVersion !== null) {
+    hideFloatingToolbar();
+    return;
+  }
+  const paper = document.getElementById('docPaper');
+  if (!paper.contains(e.target) && !document.getElementById('floatingToolbar').contains(e.target)) {
+    hideFloatingToolbar();
+    return;
+  }
+
+  const sel = window.getSelection();
+  const text = sel.toString().trim();
+  if (!text || text.length === 0) {
+    hideFloatingToolbar();
+    return;
+  }
+
+  selectedText = text;
+  selectedRange = sel.getRangeAt(0).cloneRange();
+  const rect = sel.getRangeAt(0).getBoundingClientRect();
+  const toolbar = document.getElementById('floatingToolbar');
+  toolbar.style.left = (rect.left + rect.width / 2 - 80) + 'px';
+  toolbar.style.top = (rect.top - 40) + 'px';
+  toolbar.classList.add('visible');
+});
+
+function hideFloatingToolbar() {
+  document.getElementById('floatingToolbar').classList.remove('visible');
+}
+
+document.getElementById('suggestReplacementBtn').addEventListener('click', () => {
+  hideFloatingToolbar();
+  const popover = document.getElementById('suggestionPopover');
+  document.getElementById('popoverOriginal').textContent = selectedText;
+  document.getElementById('popoverReplacement').value = '';
+  const rect = selectedRange.getBoundingClientRect();
+  popover.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
+  popover.style.top = (rect.bottom + 8) + 'px';
+  popover.classList.add('visible');
+  document.getElementById('popoverReplacement').focus();
+});
+
+document.getElementById('popoverCancel').addEventListener('click', () => {
+  document.getElementById('suggestionPopover').classList.remove('visible');
+});
+
+document.getElementById('popoverSubmit').addEventListener('click', async () => {
+  const replacement = document.getElementById('popoverReplacement').value.trim();
+  if (!replacement) { showToast('Replacement text is required.', 'warning'); return; }
+  const content = activeDoc.content || '';
+  const position = content.indexOf(selectedText);
+  try {
+    await api('POST', `/documents/${activeDocId}/suggestions`, {
+      original_text: selectedText,
+      replacement_text: replacement,
+      position: position >= 0 ? position : 0,
+      author: currentUser
+    });
+    document.getElementById('suggestionPopover').classList.remove('visible');
+    showToast('Suggestion created.', 'success');
+    loadSuggestions();
+  } catch (e) { showToast('Failed to create suggestion: ' + e.message, 'error'); }
+});
+
+// Close popover on outside click
+document.addEventListener('mousedown', (e) => {
+  const popover = document.getElementById('suggestionPopover');
+  if (popover.classList.contains('visible') && !popover.contains(e.target) && e.target.id !== 'suggestReplacementBtn') {
+    popover.classList.remove('visible');
+  }
+});
+
+// ============================================================
+// History
+// ============================================================
+async function loadHistory() {
+  if (!activeDocId) return;
+  try {
+    const r = await api('GET', `/documents/${activeDocId}/history`);
+    history = r.entries || r.history || r || [];
+    if (activeTab === 'history') renderHistoryPanel();
+  } catch (e) { console.error('loadHistory', e); }
+}
+
+function renderHistoryPanel() {
+  const pc = document.getElementById('panelContent');
+  if (!history.length) {
+    pc.innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--text-secondary);font-size:13px;">No history yet.</div>';
+    return;
+  }
+
+  // Separate entries by phase
+  const redlining = history.filter(h => h.phase === 'redlining');
+  const drafting = history.filter(h => h.phase === 'drafting' || !h.phase);
+  const hasBothPhases = redlining.length > 0 && drafting.length > 0;
+
+  let html = '<div class="history-list">';
+
+  if (redlining.length > 0) {
+    html += `<div class="history-phase-header redlining">Redlining Phase</div>`;
+    html += renderHistoryEntries(redlining, 'redlining');
+  }
+
+  if (hasBothPhases) {
+    const freezeDate = activeDoc && activeDoc.frozen_at ? formatDate(activeDoc.frozen_at) : '';
+    html += `<div class="history-divider">&#x1F512; Document Frozen${freezeDate ? ' &middot; ' + freezeDate : ''}</div>`;
+  }
+
+  if (drafting.length > 0) {
+    html += `<div class="history-phase-header drafting">Drafting Phase</div>`;
+    html += renderHistoryEntries(drafting, 'drafting');
+  }
+
+  // If no phase info, render all
+  if (redlining.length === 0 && drafting.length === 0) {
+    html += renderHistoryEntries(history, 'drafting');
+  }
+
+  html += '</div>';
+  pc.innerHTML = html;
+  bindHistoryToggles();
+}
+
+function renderHistoryEntries(entries, phase) {
+  return entries.map((h, i) => {
+    const summary = h.summary || h.description || `Version ${h.version || ''}`;
+    const isSelected = selectedVersion !== null && String(selectedVersion) === String(h.version);
+    let details = '';
+    if (h.changes_json) {
+      try {
+        const changes = typeof h.changes_json === 'string' ? JSON.parse(h.changes_json) : h.changes_json;
+        if (Array.isArray(changes)) {
+          details = changes.map(c => {
+            const op = c.operation || c.action || c.type || '';
+            const oldText = c.target?.text || c.old || c.original || '';
+            const newText = c.replacement ?? c.new ?? '';
+            const rangeStart = c.range?.start;
+            const rangeEnd = c.range?.end;
+            if (op === 'replace' && oldText && newText) {
+              return `<div style="margin:4px 0;"><span style="color:var(--red);text-decoration:line-through;background:var(--red-bg);padding:1px 3px;border-radius:3px;">${escapeHTML(oldText)}</span> <span style="color:var(--text-secondary);">&rarr;</span> <span style="color:var(--green);background:var(--green-bg);padding:1px 3px;border-radius:3px;">${escapeHTML(newText)}</span></div>`;
+            }
+            if (op === 'replace' && rangeStart != null && newText === '') {
+              return `<div style="margin:4px 0;"><span style="color:var(--red);text-decoration:line-through;background:var(--red-bg);padding:1px 3px;border-radius:3px;">Deleted text at position ${rangeStart}-${rangeEnd}</span></div>`;
+            }
+            if (op === 'replace' && rangeStart != null) {
+              return `<div style="margin:4px 0;"><span style="color:var(--text-secondary);">Position ${rangeStart}-${rangeEnd}:</span> <span style="color:var(--green);background:var(--green-bg);padding:1px 3px;border-radius:3px;">${escapeHTML(newText.length > 80 ? newText.slice(0, 80) + '...' : newText)}</span></div>`;
+            }
+            if (oldText && !newText) return `<div style="margin:4px 0;color:var(--red);">Deleted: <span style="text-decoration:line-through;">${escapeHTML(oldText)}</span></div>`;
+            if (!oldText && newText) return `<div style="margin:4px 0;color:var(--green);">Added: ${escapeHTML(newText)}</div>`;
+            return `<div style="margin:4px 0;color:var(--text-secondary);">${escapeHTML(JSON.stringify(c))}</div>`;
+          }).join('');
+        } else {
+          details = `<div>${escapeHTML(JSON.stringify(changes, null, 2))}</div>`;
+        }
+      } catch { details = ''; }
+    }
+
+    // For redlining entries, extract proposer/approver from summary
+    let authorLine = '';
+    if (phase === 'redlining') {
+      const matchFull = summary.match(/^Accepted suggestion by ([^ ]+) \(approved by ([^)]+)\):/);
+      const matchSimple = summary.match(/^Accepted suggestion by ([^:]+):/);
+      if (matchFull) {
+        authorLine = `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Proposed by <strong>${escapeHTML(matchFull[1])}</strong> · Accepted by <strong>${escapeHTML(matchFull[2])}</strong></div>`;
+      } else if (matchSimple) {
+        authorLine = `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Proposed by <strong>${escapeHTML(matchSimple[1].trim())}</strong></div>`;
+      }
+    }
+
+    return `<div class="history-entry${isSelected ? ' selected' : ''}" data-version="${h.version || ''}" data-phase="${phase}" data-entry-idx="${i}">
+      <span class="history-dot ${phase}"></span>
+      <div class="history-entry-content">
+        <span class="history-version">v${h.version || '?'}</span>
+        <div class="history-summary">${escapeHTML(summary)}</div>
+        ${authorLine}
+        <div class="history-time">${relativeTime(h.created_at || h.timestamp)}</div>
+        ${details ? `<button class="history-toggle" data-idx="${phase}-${i}">Hide details</button><div class="history-details open" id="hd-${phase}-${i}">${details}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bindHistoryToggles() {
+  document.querySelectorAll('.history-toggle').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.idx;
+      const det = document.getElementById('hd-' + id);
+      if (det.classList.contains('open')) {
+        det.classList.remove('open');
+        btn.textContent = 'Show details';
+      } else {
+        det.classList.add('open');
+        btn.textContent = 'Hide details';
+      }
+    });
+  });
+
+  // Bind click-to-diff on history entries
+  document.querySelectorAll('.history-entry').forEach(entry => {
+    entry.addEventListener('click', (e) => {
+      if (e.target.closest('.history-toggle') || e.target.closest('.history-details')) return;
+      const version = entry.dataset.version;
+      if (!version) return;
+      const vNum = parseInt(version, 10);
+      if (isNaN(vNum)) return;
+
+      // Toggle: clicking same version deselects
+      if (selectedVersion === vNum) {
+        selectedVersion = null;
+      } else {
+        selectedVersion = vNum;
+      }
+      renderHistoryPanel();
+      renderVersionDiff();
+    });
+  });
+}
+
+// ============================================================
+// Version Diff View
+// ============================================================
+function renderVersionDiff() {
+  const paper = document.getElementById('docPaper');
+  if (!activeDoc) return;
+
+  // If no version selected, return to normal view
+  if (selectedVersion === null) {
+    paper.classList.remove('diff-mode');
+    if (activeDoc.frozen_at) {
+      renderInlineSuggestions();
+    } else {
+      paper.innerHTML = sanitizeHTML(activeDoc.content || '');
+    }
+    return;
+  }
+
+  // Find the history entry for the selected version
+  const entry = history.find(h => h.version === selectedVersion || String(h.version) === String(selectedVersion));
+  if (!entry) {
+    selectedVersion = null;
+    paper.classList.remove('diff-mode');
+    if (activeDoc.frozen_at) {
+      renderInlineSuggestions();
+    } else {
+      paper.innerHTML = sanitizeHTML(activeDoc.content || '');
+    }
+    return;
+  }
+
+  paper.classList.add('diff-mode');
+
+  const content = activeDoc.content || '';
+
+  // Parse changes from the history entry
+  let changes = [];
+  if (entry.changes_json) {
+    try {
+      changes = typeof entry.changes_json === 'string' ? JSON.parse(entry.changes_json) : entry.changes_json;
+      if (!Array.isArray(changes)) changes = [];
+    } catch { changes = []; }
+  }
+
+  // Build diff overlay: for each change, find the replacement text in current content
+  // and annotate it with what was removed + what was added
+  const diffMarks = []; // { idx, length, oldText, newText }
+
+  for (const c of changes) {
+    const oldText = c.target?.text || c.old || c.original || '';
+    const newText = c.replacement ?? c.new ?? '';
+
+    if (newText && newText.length > 0) {
+      // The change was applied, so newText should exist in current content
+      const idx = content.indexOf(newText);
+      if (idx !== -1) {
+        diffMarks.push({ idx, length: newText.length, oldText, newText });
+      }
+    } else if (oldText && (!newText || newText.length === 0)) {
+      // Deletion - the old text was removed, so it won't be in current content
+      // Try to find the position based on range
+      const rangeStart = c.range?.start;
+      if (rangeStart != null) {
+        diffMarks.push({ idx: Math.min(rangeStart, content.length), length: 0, oldText, newText: '' });
+      }
+    }
+  }
+
+  // Sort by position ascending, deduplicate overlaps
+  diffMarks.sort((a, b) => a.idx - b.idx);
+
+  // Build the HTML
+  let html = `<div class="diff-banner">
+    <span>Viewing changes from Version ${selectedVersion}</span>
+    <button id="backToCurrentBtn">Back to current</button>
+  </div>`;
+
+  if (diffMarks.length === 0 && changes.length > 0) {
+    // Could not map changes to content positions; show a note
+    html += `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;font-family:var(--font-ui);">Changes could not be precisely mapped to current content.</div>`;
+    html += `<span class="diff-context">${sanitizeHTML(content)}</span>`;
+  } else if (diffMarks.length === 0) {
+    html += `<span class="diff-context">${sanitizeHTML(content)}</span>`;
+  } else {
+    let lastIdx = 0;
+    for (const mark of diffMarks) {
+      // Context text before this mark
+      if (mark.idx > lastIdx) {
+        html += `<span class="diff-context">${sanitizeHTML(content.substring(lastIdx, mark.idx))}</span>`;
+      }
+      // Show removed text (strikethrough red) then added text (green underline)
+      if (mark.oldText) {
+        html += `<span class="diff-removed">${escapeHTML(mark.oldText)}</span>`;
+      }
+      if (mark.newText) {
+        html += `<span class="diff-added">${escapeHTML(mark.newText)}</span>`;
+      }
+      lastIdx = mark.idx + mark.length;
+    }
+    // Remaining context
+    if (lastIdx < content.length) {
+      html += `<span class="diff-context">${sanitizeHTML(content.substring(lastIdx))}</span>`;
+    }
+  }
+
+  paper.innerHTML = html;
+
+  // Paginate into multiple pages (back button handled via delegation on paper)
+  paginateIntoPages();
+}
+
+// ============================================================
+// Panel Tabs
+// ============================================================
+document.querySelectorAll('.panel-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activeTab = tab.dataset.tab;
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
+    if (activeTab === 'suggestions') renderSuggestionsPanel();
+    else renderHistoryPanel();
+  });
+});
+
+// ============================================================
+// Modal close on overlay click
+// ============================================================
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('visible');
+  });
+});
+
+// Escape key closes modals
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.visible').forEach(m => m.classList.remove('visible'));
+    document.getElementById('suggestionPopover').classList.remove('visible');
+    hideFloatingToolbar();
+  }
+});
+
+// ============================================================
+// Init
+// ============================================================
+loadDocuments();
+</script>
+</body>
+</html>
