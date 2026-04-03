@@ -1,6 +1,8 @@
 A document management with text editing and hybrid search. Built with FastAPI, PostgreSQL, and pgvector.
 
-Documents go through two phases: **Drafting** (free edits with auto-save) → **Redlining** (freeze the document, propose changes as suggestions, peer-approve). 
+**Live demo:** https://docs-production-5dee.up.railway.app/static/index.html
+
+Documents go through two phases: **Drafting** (free edits with auto-save) → **Redlining** (freeze the document, propose changes as suggestions, peer-approve).
 
 ## Quick Start
 
